@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.2
+
+### Patch Changes
+
+- 610968e: Initial commit
+
 ## 0.0.3
 
 ### Patch Changes
