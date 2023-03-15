@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.3
+
+### Patch Changes
+
+- 6d96e03: Added configuration for cli
+
 ## 0.0.2
 
 ### Patch Changes
