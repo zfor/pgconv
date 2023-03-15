@@ -1,10 +1,13 @@
 {
-  "name": "@zfor/pgconv",
-  "version": "0.0.3",
+  "name": "@czisis/pgconv",
+  "version": "0.0.1",
   "description": "",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "vitest",
     "build": "tsup src/index.ts --format cjs,esm --dts",
@@ -31,6 +34,7 @@
     "vitest": "^0.29.2"
   },
   "dependencies": {
-    "commander": "^10.0.0"
+    "commander": "^10.0.0",
+    "fast-xml-parser": "^4.1.3"
   }
 }
