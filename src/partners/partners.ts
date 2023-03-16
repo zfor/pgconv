@@ -161,7 +161,11 @@ export const extractPartners = async (inputFilePath: string) => {
   const absolutePath = resolve(inputFilePath);
   const parsedPath = parse(absolutePath);
 
-  await workbook.xlsx.writeFile(format({ ...parsedPath, ext: "xlsx" }));
+  const outFileName = `${parse(inputFilePath).name}.xlsx`;
+
+  await workbook.xlsx.writeFile(
+    format({ ...parsedPath, ext: "xlsx", base: outFileName })
+  );
   hideSpinner();
   logUpdate(`XLSX File generated successfully!`);
   console.log("Location:", format({ ...parsedPath, ext: "xlsx" }));
