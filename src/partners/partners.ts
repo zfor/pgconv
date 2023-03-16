@@ -3,7 +3,7 @@ import { XMLParser } from "fast-xml-parser";
 import { hideSpinner, showSpinner } from "../utils/spinner.util";
 import { readFile, writeFile } from "fs/promises";
 import exceljs from "exceljs";
-import { join, parse } from "path";
+import { format, join, parse, resolve } from "path";
 import logUpdate from "log-update";
 
 const parser = new XMLParser({
@@ -158,10 +158,11 @@ export const extractPartners = async (inputFilePath: string) => {
     });
   });
 
-  const outFileName = `${parse(inputFilePath).name}.xlsx`;
+  const absolutePath = resolve(inputFilePath);
+  const parsedPath = parse(absolutePath);
 
-  await workbook.xlsx.writeFile(join(process.cwd(), outFileName));
+  await workbook.xlsx.writeFile(format({ ...parsedPath, ext: "xlsx" }));
   hideSpinner();
   logUpdate(`XLSX File generated successfully!`);
-  console.log("Location:", join(process.cwd(), outFileName));
+  console.log("Location:", format({ ...parsedPath, ext: "xlsx" }));
 };
