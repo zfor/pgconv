@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.8
+
+### Patch Changes
+
+- 67df46e: Fixed console output
+
 ## 0.0.7
 
 ### Patch Changes
