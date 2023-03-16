@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.4
+
+### Patch Changes
+
+- 2d3cc4d: Add cli tools
+
 ## 0.0.3
 
 ### Patch Changes
