@@ -24,6 +24,7 @@ type Partner = {
 };
 
 export const extractPartners = async (inputFilePath: string) => {
+  console.time("Output generated in:");
   showSpinner("Processing XML file");
   const xmlSource = await readFile(inputFilePath, { encoding: "utf-8" });
 
@@ -162,11 +163,11 @@ export const extractPartners = async (inputFilePath: string) => {
   const parsedPath = parse(absolutePath);
 
   const outFileName = `${parse(inputFilePath).name}.xlsx`;
+  const outFilePath = format({ ...parsedPath, ext: "xlsx", base: outFileName });
 
-  await workbook.xlsx.writeFile(
-    format({ ...parsedPath, ext: "xlsx", base: outFileName })
-  );
+  await workbook.xlsx.writeFile(outFilePath);
   hideSpinner();
   logUpdate(`XLSX File generated successfully!`);
-  console.log("Location:", format({ ...parsedPath, ext: "xlsx" }));
+  console.log("Location:", outFilePath);
+  console.timeEnd("Output generated in:");
 };
