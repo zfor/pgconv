@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.6
+
+### Patch Changes
+
+- de0aa06: Change path calculation for output files
+
 ## 0.0.5
 
 ### Patch Changes
