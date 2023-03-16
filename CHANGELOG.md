@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.7
+
+### Patch Changes
+
+- 11a2a70: Fix extension for output files
+
 ## 0.0.6
 
 ### Patch Changes
