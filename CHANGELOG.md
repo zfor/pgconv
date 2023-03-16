@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 0.0.5
+
+### Patch Changes
+
+- 2b6a8fc: Added partner export feature
+
 ## 0.0.4
 
 ### Patch Changes
