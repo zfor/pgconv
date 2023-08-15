@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 1.0.1
+
+### Patch Changes
+
+- 094b43f: Fixes an issue where parner address is missing the apt number
+
 ## 1.0.0
 
 ### Major Changes
