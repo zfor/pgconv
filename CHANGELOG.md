@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 1.0.0
+
+### Major Changes
+
+- 25ee6d7: Include support for invoice import xlsx packages from NAV XML output
+
 ## 0.0.8
 
 ### Patch Changes
