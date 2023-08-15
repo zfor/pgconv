@@ -1,143 +1,61 @@
-import { readFileSync } from "fs";
-import { XMLParser } from "fast-xml-parser";
-import { hideSpinner, showSpinner } from "../utils/spinner.util";
-import { readFile, writeFile } from "fs/promises";
-import exceljs from "exceljs";
-import { format, join, parse, resolve } from "path";
-import logUpdate from "log-update";
+import { format, parse, resolve } from 'path';
+import { XMLParser } from 'fast-xml-parser';
+import logUpdate from 'log-update';
+import { readFile } from 'fs/promises';
+
+import { Partner, PartnerCommandOptions } from './partners.type';
+import { createWorkbook, emptyColumns } from '../utils/workbook.util';
+import { deepPartnerTableColumns, ippSheetColumns } from './partners.contants';
+import { hideSpinner, showSpinner } from '../utils/spinner.util';
+import { extractUniquePartnerListFromNavXML } from '../utils/partner.util';
 
 const parser = new XMLParser({
   htmlEntities: true,
   trimValues: true,
 });
 
-type Partner = {
-  nev: string;
-  adoszam?: string;
-  cim: {
-    iranyitoszam: string;
-    telepules: string;
-    kozterulet_neve: string;
-    kozterulet_jellege?: string;
-    hazszam?: string;
-  };
+export const partnerAction = async (inputFilePath: string, partnerCommandOptions: PartnerCommandOptions) => {
+  console.time('Output generated in:');
+  showSpinner('Processing XML file');
+
+  // Read input file as string
+  const xmlSource = await readFile(inputFilePath, { encoding: 'utf-8' });
+  // Parse input file as XML
+  const content = parser.parse(xmlSource);
+
+  const absolutePath = resolve(inputFilePath);
+  const parsedPath = parse(absolutePath);
+
+  const outFileName = `${parse(inputFilePath).name}.xlsx`;
+  const outFilePath = format({ ...parsedPath, ext: 'xlsx', base: outFileName });
+
+  if (partnerCommandOptions.format === 'ipp') {
+    return exportPartnersIPP(content, outFilePath);
+  }
+
+  if (partnerCommandOptions.format === 'deep') {
+    return exportPartnersDeep(content, outFilePath);
+  }
+
+  throw new Error(`Format '${format}' is not supported. Available values are: ipp, deep`);
 };
 
-export const extractPartners = async (inputFilePath: string) => {
-  console.time("Output generated in:");
-  showSpinner("Processing XML file");
-  const xmlSource = await readFile(inputFilePath, { encoding: "utf-8" });
+export const exportPartnersIPP = async (content: any, outFilePath: string) => {
+  const workbook = createWorkbook();
 
-  const content = parser.parse(xmlSource);
-  const workbook = new exceljs.Workbook();
+  const sheet = workbook.addWorksheet('PartnerTorzs');
 
-  workbook.creator = "pgconv";
-
-  const sheet = workbook.addWorksheet("PartnerTorzs");
-
-  sheet.columns = [
-    { header: "vevo-0", key: "vevo-0", width: 10 },
-    { header: "Iktatószám", key: "key", width: 32 },
-    { header: "Vevő neve", key: "name", width: 32 },
-    { header: "", key: "empty1", width: 2 },
-    { header: "", key: "mainGroup", width: 18 },
-    { header: "", key: "secondaryGroup", width: 2 },
-    { header: "Irányítószám", key: "postalCode", width: 10 },
-    { header: "Település", key: "city", width: 14 },
-    { header: "Közterület neve", key: "street", width: 14 },
-    { header: "Ország", key: "country", width: 14 },
-    { header: "", key: "empty2", width: 2 },
-    { header: "", key: "empty3", width: 2 },
-
-    { header: "Irányítószám", key: "postalCode1", width: 10 },
-    { header: "Település", key: "city1", width: 14 },
-    { header: "Közterület neve", key: "street1", width: 14 },
-    { header: "Ország", key: "country1", width: 14 },
-
-    { header: "", key: "empty4", width: 2 },
-    { header: "", key: "empty5", width: 2 },
-    { header: "", key: "empty6", width: 2 },
-    { header: "", key: "empty7", width: 2 },
-    { header: "", key: "empty8", width: 2 },
-    { header: "", key: "empty9", width: 2 },
-    { header: "", key: "empty10", width: 2 },
-    { header: "", key: "empty11", width: 2 },
-
-    { header: "", key: "cashOnly", width: 6 },
-
-    { header: "", key: "empty12", width: 2 },
-    { header: "", key: "empty13", width: 2 },
-    { header: "", key: "empty14", width: 2 },
-
-    { header: "Adószám", key: "taxNumber", width: 18 },
-
-    { header: "", key: "empty14", width: 2 },
-    { header: "", key: "empty15", width: 2 },
-    { header: "", key: "empty16", width: 2 },
-    { header: "", key: "empty17", width: 2 },
-    { header: "", key: "empty18", width: 2 },
-    { header: "", key: "empty19", width: 2 },
-    { header: "", key: "empty20", width: 2 },
-    { header: "", key: "empty21", width: 2 },
-    { header: "", key: "empty22", width: 2 },
-    { header: "", key: "empty23", width: 2 },
-    { header: "", key: "empty24", width: 2 },
-    { header: "", key: "empty25", width: 2 },
-
-    { header: "Mozgásirány", key: "direction", width: 4 },
-
-    { header: "", key: "empty25", width: 2 },
-    { header: "", key: "empty26", width: 2 },
-    { header: "", key: "empty27", width: 2 },
-    { header: "", key: "empty28", width: 2 },
-    { header: "", key: "empty29", width: 2 },
-    { header: "", key: "empty30", width: 2 },
-    { header: "", key: "empty31", width: 2 },
-    { header: "", key: "empty32", width: 2 },
-    { header: "", key: "empty33", width: 2 },
-    { header: "", key: "empty34", width: 2 },
-    { header: "", key: "empty35", width: 2 },
-    { header: "", key: "empty36", width: 2 },
-    { header: "", key: "empty37", width: 2 },
-    { header: "", key: "empty38", width: 2 },
-    { header: "", key: "empty39", width: 2 },
-    { header: "", key: "empty40", width: 2 },
-
-    { header: "Közterület neve", key: "street2", width: 14 },
-    { header: "Közterület jellege", key: "streetType", width: 14 },
-    { header: "Házszám", key: "address", width: 14 },
-
-    { header: "", key: "empty41", width: 2 },
-    { header: "", key: "empty42", width: 2 },
-    { header: "", key: "empty43", width: 2 },
-    { header: "", key: "empty44", width: 2 },
-    { header: "", key: "empty45", width: 2 },
-
-    { header: "Közterület neve", key: "street3", width: 14 },
-    { header: "Közterület jellege", key: "streetType1", width: 14 },
-    { header: "Házszám", key: "address1", width: 14 },
-
-    { header: "", key: "empty46", width: 2 },
-    { header: "", key: "empty47", width: 2 },
-    { header: "", key: "empty48", width: 2 },
-    { header: "", key: "empty49", width: 2 },
-    { header: "", key: "empty50", width: 2 },
-    { header: "", key: "empty51", width: 2 },
-
-    { header: "Ügyviteli kategória", key: "category", width: 2 },
-  ];
+  sheet.columns = [...ippSheetColumns];
 
   content.szamlak.szamla.forEach(({ vevo }: { vevo: Partner }) => {
-    const key = `${
-      vevo.adoszam ? vevo.adoszam : vevo.cim.iranyitoszam.toString() + vevo.nev
-    }`.substring(0, 19);
+    const key = `${vevo.adoszam ? vevo.adoszam : vevo.cim.iranyitoszam.toString() + vevo.nev}`.substring(0, 19);
 
     sheet.addRow({
-      "vevo-0": "0",
+      'vevo-0': '0',
       key,
       name: vevo.nev,
-      mainGroup: "Vevő főcsoport",
-      secondaryGroup: "-",
+      mainGroup: 'Vevő főcsoport',
+      secondaryGroup: '-',
       postalCode: vevo.cim.iranyitoszam,
       postalCode1: vevo.cim.iranyitoszam,
       city: vevo.cim.telepules,
@@ -146,28 +64,505 @@ export const extractPartners = async (inputFilePath: string) => {
       street1: vevo.cim.kozterulet_neve,
       street2: vevo.cim.kozterulet_neve,
       street3: vevo.cim.kozterulet_neve,
-      country: "Magyarország",
-      country1: "Magyarország",
-      cashOnly: "NEM",
-      taxNumber: vevo.adoszam ?? "",
+      country: 'Magyarország',
+      country1: 'Magyarország',
+      cashOnly: 'NEM',
+      taxNumber: vevo.adoszam ?? '',
       direction: 0,
-      streetType: vevo.cim.kozterulet_jellege ?? "-",
-      streetType1: vevo.cim.kozterulet_jellege ?? "-",
-      address: vevo.cim.hazszam?.toString() ?? "-",
-      address1: vevo.cim.hazszam?.toString() ?? "-",
-      category: vevo.adoszam ? "1" : "3",
+      streetType: vevo.cim.kozterulet_jellege ?? '-',
+      streetType1: vevo.cim.kozterulet_jellege ?? '-',
+      address: vevo.cim.hazszam?.toString() ?? '-',
+      address1: vevo.cim.hazszam?.toString() ?? '-',
+      category: vevo.adoszam ? '1' : '3',
     });
   });
 
-  const absolutePath = resolve(inputFilePath);
-  const parsedPath = parse(absolutePath);
-
-  const outFileName = `${parse(inputFilePath).name}.xlsx`;
-  const outFilePath = format({ ...parsedPath, ext: "xlsx", base: outFileName });
-
   await workbook.xlsx.writeFile(outFilePath);
   hideSpinner();
-  logUpdate(`XLSX File generated successfully!`);
-  console.log("Location:", outFilePath);
-  console.timeEnd("Output generated in:");
+  logUpdate('XLSX File generated successfully!');
+  console.log('Location:', outFilePath);
+  console.timeEnd('Output generated in:');
+};
+
+const exportPartnersDeep = async (content: any, outFilePath: string) => {
+  const workbook = createWorkbook();
+
+  const controlSheet = workbook.addWorksheet('Vezérlés');
+  controlSheet.addRow(['Paraméterek az excel tábla értelmezéséhez']);
+  controlSheet.addRow('');
+
+  controlSheet.addTable({
+    columns: [{ name: 'Paraméter' }, { name: 'Érték' }],
+    rows: [
+      ['Melyik sor az adat mező technikai neve', '4'],
+      ['Mező  nyelvi neve (redundáns adat)', '5'],
+      ['Hol kezdődik az adat (sor)', '6'],
+      ['Import fülek száma'],
+    ],
+    name: 'parameterTable',
+    ref: 'A3',
+  });
+
+  controlSheet.addTable({
+    name: '2',
+    ref: 'A10',
+    columns: [{ name: 'Osztály technikai neve' }, { name: 'Fül' }, { name: 'Adat azonosítók' }],
+    rows: [
+      ['rEVOLUTION.DEEP.Module.ERP.General.Partners.Partner', 'Partner', 'Iktatószám,Partner típus'],
+      ['PartnerSites', 'Partner telephelyek', 'Megnevezés'],
+      ['PartnerContacts', 'Partner kapcsolattartók', 'Megnevezés,Partner kapcsolattartó típus'],
+      ['PartnerBankAccounts', 'Partner bankszámlák', 'Megnevezés'],
+      ['PartnerKATAPeriods', 'KATA időszakok', 'Dátumtól'],
+      ['ReceivablesManagementNotificationTypes', 'Kintlévőség kezelés - Értes 01', 'Kintlévőség kezelés - Értesítési típus'],
+    ],
+  });
+
+  const partnerSheet = workbook.addWorksheet('Partner');
+
+  workbook.addWorksheet('Partner telephelyek');
+  workbook.addWorksheet('Partner kapcsolattartók');
+  workbook.addWorksheet('Partner bankszámlák');
+  workbook.addWorksheet('KATA időszakok');
+  workbook.addWorksheet('Kintlévőség kezelés - Értes 01');
+
+  partnerSheet.addRow([]);
+  partnerSheet.addRow([]);
+  partnerSheet.addRow([
+    '',
+    'Létrehozás',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+    'Létrehozás és firssítés',
+  ]);
+  partnerSheet.addRow([
+    'DataIndex',
+    'PartnerType',
+    'PartnerSubType',
+    'ReferenceNumber',
+    'Name',
+    'ExternalReferenceNumber',
+    'AnalystReferenceNumber',
+    'ExternalReferenceID',
+    'InvoiceAddressData.Country',
+    'InvoiceAddressData.County',
+    'InvoiceAddressData.ZipCode',
+    'InvoiceAddressData.City',
+    'InvoiceAddressData.District',
+    'InvoiceAddressData.StreetType',
+    'InvoiceAddressData.Street',
+    'InvoiceAddressData.HouseNumber',
+    'InvoiceAddressData.Building',
+    'InvoiceAddressData.Stairway',
+    'InvoiceAddressData.Floor',
+    'InvoiceAddressData.Door',
+    'InvoiceAddressData.POB',
+    'InvoiceAddressData.Address',
+    'InvoiceAddressData.Phone',
+    'InvoiceAddressData.Mobil',
+    'InvoiceAddressData.Fax',
+    'InvoiceAddressData.Email',
+    'InvoiceAddressData.WEBAddress',
+    'InvoiceAddressData.SkypeName',
+    'PostAddressData.Country',
+    'PostAddressData.County',
+    'PostAddressData.ZipCode',
+    'PostAddressData.City',
+    'PostAddressData.District',
+    'PostAddressData.StreetType',
+    'PostAddressData.Street',
+    'PostAddressData.HouseNumber',
+    'PostAddressData.Building',
+    'PostAddressData.Stairway',
+    'PostAddressData.Floor',
+    'PostAddressData.Door',
+    'PostAddressData.POB',
+    'PostAddressData.Address',
+    'PostAddressData.Phone',
+    'PostAddressData.Mobil',
+    'PostAddressData.Fax',
+    'PostAddressData.Email',
+    'PostAddressData.WEBAddress',
+    'PostAddressData.SkypeName',
+    'IsWebStoreEnabled',
+    'SalespersonPartner',
+    'Currency',
+    'Language',
+    'OwnNumberAtPartner',
+    'VATRegistrationNumber',
+    'PartnerBusinessCategory',
+    'IsGroupVATMember',
+    'GroupVATRegistrationNumber',
+    'CommunityGroupVATRegistrationNumber',
+    'CommunityVATRegistrationNumber',
+    'CommunityStateCode',
+    'BusinessLicenceNumber',
+    'OperatingLicenceNumber',
+    'OtherIdentificationNumber',
+    'VPIDNumber',
+    'GLNNumber',
+    'IsPaymentVAT',
+    'IntrastatCountry',
+    'AccountingPartnerCategory',
+    'AccountingBusinessCategory',
+    'ConsignmentPartnerWarehouse',
+    'InternalPartnerWarehouse',
+    'CreditLimitCheckRule',
+    'CreditLimitAccountingCurrency',
+    'MRPGenerateByOrders',
+    'IsActive',
+    'EORINumber',
+    'ExciseType',
+    'ExciseSerialNumberOfCertificateOfExemption',
+    'ExciseTaxWarehouseNumberSite',
+    'ExciseTaxWarehouseNumberTrader',
+    'ExciseNumber',
+    'ExciseUserLicenseNumber',
+    'ExciseRegisteredUserLicenseNumber',
+    'ExciseRegisteredUserTraderLicenseNumber',
+    'ExciseTemporaryRegisteredUserTraderLicenseNumber',
+    'ExciseCertifiedConsigneeLicenseNumber',
+    'ExciseTemporaryCertifiedConsigneeLicenseNumber',
+    'ExciseCustomsOffice',
+    'HeadDimension.Dimension1',
+    'HeadDimension.Dimension2',
+    'HeadDimension.Dimension3',
+    'HeadDimension.Dimension4',
+    'HeadDimension.Dimension5',
+    'HeadDimension.Dimension6',
+    'HeadDimension.Dimension7',
+    'HeadDimension.Dimension8',
+    'HeadDimension.Dimension9',
+    'HeadDimension.Dimension10',
+    'RowDimension.Dimension1',
+    'RowDimension.Dimension2',
+    'RowDimension.Dimension3',
+    'RowDimension.Dimension4',
+    'RowDimension.Dimension5',
+    'RowDimension.Dimension6',
+    'RowDimension.Dimension7',
+    'RowDimension.Dimension8',
+    'RowDimension.Dimension9',
+    'RowDimension.Dimension10',
+    'ExtraDataBase.String1',
+    'ExtraDataBase.String2',
+    'ExtraDataBase.String3',
+    'ExtraDataBase.String4',
+    'ExtraDataBase.String5',
+    'ExtraDataBase.String6',
+    'ExtraDataBase.String7',
+    'ExtraDataBase.String8',
+    'ExtraDataBase.String9',
+    'ExtraDataBase.String10',
+    'ExtraDataBase.Number1',
+    'ExtraDataBase.Number2',
+    'ExtraDataBase.Number3',
+    'ExtraDataBase.Number4',
+    'ExtraDataBase.Number5',
+    'ExtraDataBase.Number6',
+    'ExtraDataBase.Number7',
+    'ExtraDataBase.Number8',
+    'ExtraDataBase.Number9',
+    'ExtraDataBase.Number10',
+    'ExtraDataBase.Date1',
+    'ExtraDataBase.Date2',
+    'ExtraDataBase.Date3',
+    'ExtraDataBase.Date4',
+    'ExtraDataBase.Date5',
+    'ExtraDataBase.Date6',
+    'ExtraDataBase.Date7',
+    'ExtraDataBase.Date8',
+    'ExtraDataBase.Date9',
+    'ExtraDataBase.Date10',
+    'ExtraDataBase.Bool1',
+    'ExtraDataBase.Bool2',
+    'ExtraDataBase.Bool3',
+    'ExtraDataBase.Bool4',
+    'ExtraDataBase.Bool5',
+    'ExtraDataBase.Bool6',
+    'ExtraDataBase.Bool7',
+    'ExtraDataBase.Bool8',
+    'ExtraDataBase.Bool9',
+    'ExtraDataBase.Bool10',
+    'PaymentMethod',
+    'TradePlanPartnerGroup',
+    'PaymentShiftDays',
+    'PartnerCustomerGroup1',
+    'PartnerCustomerGroup2',
+    'PartnerCustomerGroup3',
+    'PartnerVendorGroup1',
+    'PartnerVendorGroup2',
+    'PartnerVendorGroup3',
+    'PartnerDiscountGroup',
+    'PartnerPriceGroup',
+    'ItemPriceType',
+    'ItemPriceTypeGross',
+    'MinimumItemPriceType',
+    'MinimumItemPriceTypeGross',
+    'ServiceItemPriceType',
+    'RetailItemPriceType',
+    'ItemDiscountType',
+    'ItemDiscountTypeGross',
+    'ServiceItemDiscountType',
+    'RetailItemDiscountType',
+    'FinancialChargeType',
+    'IsEInvoiceEnabled',
+    'EInvoiceType',
+    'IsEInvoiceAlsoSendToSite',
+    'PayorPartner',
+    'IsEInvoiceAlsoSendToContact',
+    'EnvironmentalProtectionProductFeeBussinessCategoryDeclaration',
+    'EnvironmentalProtectionProductFeeDeclarationReferenceNumber',
+    'IsUseItemCrossCodeInInvoice',
+    'IndustryCode',
+    'DefaultWarehouse',
+    'DefaultWarehouseBin',
+    'IsSiteSeparation',
+    'TransportCategory',
+    'MarketingContactType',
+    'ReceivablesManagementNotificationScope',
+    'ReceivablesManagementNotificationType',
+    'ReceivablesManagementNotificationChannel',
+    'PartnerCompany',
+  ]);
+
+  partnerSheet.addTable({
+    ref: 'A5',
+    name: 'partnerTable',
+    columns: [...deepPartnerTableColumns],
+    rows: [
+      ...extractUniquePartnerListFromNavXML(content).map((partner: Partner, index: number) => [
+        index + 1,
+        '1',
+        '1',
+        //partner.adoszam ?? partner.nev,
+        `${partner.adoszam ? partner.adoszam.substring(0, 8) : partner.cim.iranyitoszam.toString() + partner.nev}`.substring(0, 19),
+        partner.nev,
+        ...emptyColumns(2),
+        0,
+        'HUN', // Country
+        '', // County,
+        partner.cim.iranyitoszam.toString(),
+        partner.cim.telepules,
+        '', // District
+        partner.cim.kozterulet_jellege,
+        partner.cim.kozterulet_neve,
+        partner.cim.hazszam.toString() ?? '-',
+        ...emptyColumns(32),
+        'false',
+        ...emptyColumns(2),
+        14,
+        '',
+        partner.adoszam ?? '',
+        '',
+        'false',
+        ...emptyColumns(9),
+        'false',
+        '',
+        partner.adoszam ? 'Belföldi vevő adóalany' : 'Belföldi vevő nem adóalany',
+        'Belföldi',
+        ...emptyColumns(3),
+        0,
+        'false',
+        'true',
+        ...emptyColumns(95),
+        'false',
+        '',
+        'false',
+        '',
+        'false',
+        ...emptyColumns(2),
+        'false',
+        ...emptyColumns(3),
+        'false',
+        ...emptyColumns(5),
+      ]),
+    ],
+  });
+
+  await workbook.xlsx.writeFile(outFilePath, {});
+  hideSpinner();
+  logUpdate('XLSX File generated successfully!');
 };

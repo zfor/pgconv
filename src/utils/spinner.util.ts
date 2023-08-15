@@ -1,5 +1,5 @@
-import cliSpinners from "cli-spinners";
-import logUpdate from "log-update";
+import cliSpinners from 'cli-spinners';
+import logUpdate from 'log-update';
 
 let intervalHandle: NodeJS.Timer;
 
