@@ -27,7 +27,7 @@ export type NavInvoiceAddress = {
   telepules: string;
   kozterulet_neve: string;
   kozterulet_jellege: string;
-  hazszam: number | string;
+  hazszam?: number | string;
   szint: string | number;
   ajto: number | string;
 };

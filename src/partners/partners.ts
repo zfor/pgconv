@@ -529,7 +529,7 @@ const exportPartnersDeep = async (content: any, outFilePath: string) => {
         '', // District
         partner.cim.kozterulet_jellege,
         partner.cim.kozterulet_neve,
-        partner.cim.hazszam.toString() ?? '-',
+        partner.cim.hazszam?.toString() ?? '-',
         ...emptyColumns(32),
         'false',
         ...emptyColumns(2),
