@@ -1,5 +1,11 @@
 # @zfor/pgconv
 
+## 1.1.0
+
+### Minor Changes
+
+- c426960: Added support for USD, EUR and GBP
+
 ## 1.0.1
 
 ### Patch Changes
