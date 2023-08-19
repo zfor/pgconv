@@ -1,3 +1,6 @@
+import BigNumber from 'bignumber.js';
+import { SupportedCurrency } from '../exhange-rates/transaction.type';
+
 export type PartnerOutputFormat = 'deep' | 'ipp';
 
 export type PartnerCommandOptions = {
@@ -7,6 +10,7 @@ export type PartnerCommandOptions = {
 export type Partner = {
   nev: string;
   adoszam?: string;
+  kozadoszam?: string;
   cim: NavInvoiceAddress;
 };
 
@@ -47,6 +51,7 @@ export type NavInvoiceLine = {
 };
 
 export type ExtendedNavInvoice = {
+  exchangeRate: BigNumber;
   fejlec: NavInvoiceHeader;
   szamlakibocsato: {
     adoszam: string;
@@ -70,13 +75,14 @@ export type ExtendedNavInvoice = {
   nem_kotelezo: {
     fiz_hatarido: string;
     fiz_mod: 'Átutalás' | string;
-    penznem: 'HUF' | 'EUR' | 'GBP' | string;
+    penznem: SupportedCurrency;
     szla_forma: boolean;
   };
   osszesites: NavInvoiceTotals;
 };
 
 export type NavInvoce = {
+  exchangeRate: BigNumber;
   fejlec: NavInvoiceHeader;
   szamlakibocsato: {
     adoszam: string;
@@ -100,7 +106,7 @@ export type NavInvoce = {
   nem_kotelezo: {
     fiz_hatarido: string;
     fiz_mod: 'Átutalás' | string;
-    penznem: 'HUF' | 'EUR' | 'GBP' | string;
+    penznem: SupportedCurrency;
     szla_forma: boolean;
   };
   osszesites: NavInvoiceTotals;

@@ -3,11 +3,12 @@ import { XMLParser } from 'fast-xml-parser';
 import logUpdate from 'log-update';
 import { readFile } from 'fs/promises';
 
-import { Partner, PartnerCommandOptions } from './partners.type';
+import { NavInvoce, Partner, PartnerCommandOptions } from './partners.type';
 import { createWorkbook, emptyColumns } from '../utils/workbook.util';
 import { deepPartnerTableColumns, ippSheetColumns } from './partners.contants';
 import { hideSpinner, showSpinner } from '../utils/spinner.util';
 import { extractUniquePartnerListFromNavXML } from '../utils/partner.util';
+import { getPartnerReference } from '../utils/invoices.utils';
 
 const parser = new XMLParser({
   htmlEntities: true,
@@ -518,7 +519,7 @@ const exportPartnersDeep = async (content: any, outFilePath: string) => {
         '1',
         '1',
         //partner.adoszam ?? partner.nev,
-        `${partner.adoszam ? partner.adoszam.substring(0, 8) : partner.cim.iranyitoszam.toString() + partner.nev}`.substring(0, 19),
+        getPartnerReference({ vevo: partner } as NavInvoce),
         partner.nev,
         ...emptyColumns(2),
         0,

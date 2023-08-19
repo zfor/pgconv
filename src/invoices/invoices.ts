@@ -1,6 +1,7 @@
 import * as date from 'date-fns';
 import { ExtendedNavInvoice, InvoiceType, NavInvoce, invoiceType } from '../partners/partners.type';
 import { createWorkbook, emptyColumns } from '../utils/workbook.util';
+import { extractInvoiceListFromNavXML, getPartnerReference } from '../utils/invoices.utils';
 import { format, parse, resolve } from 'path';
 import { hideSpinner, showSpinner } from '../utils/spinner.util';
 import {
@@ -14,24 +15,35 @@ import {
 import { BigNumber } from 'bignumber.js';
 import { InvoiceCommandOptions } from './invoices.type';
 import { XMLParser } from 'fast-xml-parser';
-import { extractInvoiceListFromNavXML } from '../utils/invoices.utils';
+import { initExchangeRates } from '../exhange-rates/exhange-rate.utils';
+import log from 'npmlog';
 import logUpdate from 'log-update';
 import { readFile } from 'fs/promises';
+import { writeFileSync } from 'fs';
 
 const parser = new XMLParser({
   htmlEntities: true,
   trimValues: true,
 });
 
+const prefix = 'Invoices';
+
 export const invoicesAction = async (inputFilePath: string, options: InvoiceCommandOptions) => {
-  console.time('Output generated in:');
   showSpinner('Processing XML file');
   const maxInvoicesPerFile = parseInt(options.count);
-  console.log(maxInvoicesPerFile);
+  log.info(prefix, `Processing NAV XML with a per file limit of ${maxInvoicesPerFile}`);
   // Read input file as string
   const xmlSource = await readFile(inputFilePath, { encoding: 'utf-8' });
   // Parse input file as XML
   const content = parser.parse(xmlSource);
+  log.info(prefix, 'Successfully parsed XML');
+  hideSpinner();
+
+  showSpinner('Loading MNB rates. This could take a few seconds.');
+  await initExchangeRates();
+  hideSpinner();
+  logUpdate('');
+  log.info(prefix, 'MNB rates are successfully loaded');
 
   const absolutePath = resolve(inputFilePath);
   const parsedPath = parse(absolutePath);
@@ -119,9 +131,7 @@ export const exportInvoices = async (
         index + 1,
         ...emptyColumns(1),
         invoice.fejlec.szlatipus === invoiceType.normal ? 'Vevői számla' : 'Vevői sztornó számla',
-        `${
-          invoice.vevo.adoszam ? invoice.vevo.adoszam.substring(0, 8) : invoice.vevo.cim.iranyitoszam.toString() + invoice.vevo.nev
-        }`.substring(0, 19),
+        getPartnerReference(invoice),
         invoice.fejlec.szlatipus === invoiceType.normal ? '' : invoice.modosito_szla?.eredeti_sorszam,
         ...emptyColumns(2),
         'Belföldi',
@@ -146,9 +156,9 @@ export const exportInvoices = async (
         ),
         '3',
         invoice.nem_kotelezo.penznem,
-        '', // Arfolyam 6 tizedesjegyig
+        invoice.exchangeRate.toFormat(2, { decimalSeparator: ',' }), // Arfolyam 6 tizedesjegyig
         new BigNumber(invoice.osszesites.vegosszeg.bruttoarossz).toFormat(2, { decimalSeparator: ',' }), // Foosszeg
-        new BigNumber(invoice.osszesites.vegosszeg.bruttoarossz).toFormat(2, { decimalSeparator: ',' }), // Foosszeg forintban mindig (2 tizedesig)
+        new BigNumber(invoice.osszesites.vegosszeg.bruttoarossz).times(invoice.exchangeRate).toFormat(2, { decimalSeparator: ',' }), // Foosszeg forintban mindig (2 tizedesig)
         ...emptyColumns(3),
         '1',
         'false',
@@ -244,11 +254,7 @@ export const exportInvoices = async (
         invoiceLine.reference,
         invoiceLine.fejlec.szlasorszam,
         invoiceLine.fejlec.szlatipus === invoiceType.normal ? 'Vevői számla' : 'Vevői sztornó számla',
-        `${
-          invoiceLine.vevo.adoszam
-            ? invoiceLine.vevo.adoszam.substring(0, 8)
-            : invoiceLine.vevo.cim.iranyitoszam.toString() + invoiceLine.vevo.nev
-        }`.substring(0, 19),
+        getPartnerReference(invoiceLine),
         '1',
         invoiceLine.nem_kotelezo.penznem,
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
@@ -258,7 +264,7 @@ export const exportInvoices = async (
             : '9698'
           : accountNumber,
         ...emptyColumns(1),
-        new BigNumber(1).toFormat(6, { decimalSeparator: ',' }),
+        invoiceLine.exchangeRate.toFormat(6, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) && invoiceLine.termek_szolgaltatas_tetelek.adokulcs,
         '1',
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) && invoiceLine.termek_szolgaltatas_tetelek.termeknev,
@@ -275,15 +281,21 @@ export const exportInvoices = async (
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
           new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.bruttoar).toFormat(2, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
-          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.bruttoar).toFormat(2, { decimalSeparator: ',' }),
+          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.bruttoar)
+            .times(invoiceLine.exchangeRate)
+            .toFormat(2, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
           new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.nettoar).toFormat(2, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
-          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.nettoar).toFormat(2, { decimalSeparator: ',' }),
+          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.nettoar)
+            .times(invoiceLine.exchangeRate)
+            .toFormat(2, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
           new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.adoertek).toFormat(2, { decimalSeparator: ',' }),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
-          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.adoertek).toFormat(2, { decimalSeparator: ',' }),
+          new BigNumber(invoiceLine.termek_szolgaltatas_tetelek.adoertek)
+            .times(invoiceLine.exchangeRate)
+            .toFormat(2, { decimalSeparator: ',' }),
         ...emptyColumns(2),
         'false',
         'false',
@@ -294,9 +306,8 @@ export const exportInvoices = async (
   workbook.addWorksheet('Egyéb kapcsolt számlák');
   workbook.addWorksheet('Csatolt állományok');
 
+  writeFileSync('content.json', JSON.stringify(invoices, undefined, 2));
   await workbook.xlsx.writeFile(outFilePath, {});
-  hideSpinner();
-  logUpdate('XLSX File generated successfully!');
-
-  //writeFileSync('content.json', JSON.stringify(invoices, undefined, 2));
+  //hideSpinner();
+  log.info(prefix, 'XLSX files generated successfully');
 };
