@@ -1,5 +1,12 @@
 # @zfor/pgconv
 
+## 1.1.1
+
+### Patch Changes
+
+- be2cdb5: Removed unnecessary logging
+- dce5322: Fixed penzforgelsz field value
+
 ## 1.1.0
 
 ### Minor Changes
