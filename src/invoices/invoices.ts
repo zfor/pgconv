@@ -271,9 +271,9 @@ export const exportInvoices = async (
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
           (customVATCodes.includes(invoiceLine.termek_szolgaltatas_tetelek.adokulcs) ? 'false' : 'true'),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
-          (customVATCodes.includes(invoiceLine.termek_szolgaltatas_tetelek.adokulcs) && invoiceLine.zaradekok.penzforgelsz
-            ? 'false'
-            : 'true'),
+          (!customVATCodes.includes(invoiceLine.termek_szolgaltatas_tetelek.adokulcs) && invoiceLine.zaradekok.penzforgelsz
+            ? 'true'
+            : 'false'),
         !Array.isArray(invoiceLine.termek_szolgaltatas_tetelek) &&
           (customVATCodes.includes(invoiceLine.termek_szolgaltatas_tetelek.adokulcs) && invoiceLine.zaradekok.penzforgelsz
             ? '3682'
