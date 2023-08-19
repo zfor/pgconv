@@ -16,7 +16,7 @@ export const initExchangeRates = async () => {
 
   exchangeRates = await loadExchangeRates();
 
-  writeFileSync('out.json', JSON.stringify(exchangeRates, undefined, 2), { encoding: 'utf-8' });
+  //   writeFileSync('out.json', JSON.stringify(exchangeRates, undefined, 2), { encoding: 'utf-8' });
 
   log.info(prefix, 'Exchange rates successfully cached');
 };

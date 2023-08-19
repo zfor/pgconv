@@ -306,8 +306,8 @@ export const exportInvoices = async (
   workbook.addWorksheet('Egyéb kapcsolt számlák');
   workbook.addWorksheet('Csatolt állományok');
 
-  writeFileSync('content.json', JSON.stringify(invoices, undefined, 2));
+  // writeFileSync('content.json', JSON.stringify(invoices, undefined, 2));
   await workbook.xlsx.writeFile(outFilePath, {});
   //hideSpinner();
-  log.info(prefix, 'XLSX files generated successfully');
+  log.info(prefix, `XLSX file successfully generated at ${outFilePath}`);
 };
